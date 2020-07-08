@@ -1,19 +1,27 @@
 package com.example.springjpasqlsecurity.configs;
 
+import com.example.springjpasqlsecurity.filters.JwtFilter;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @EnableWebSecurity
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
-    
+
     @Autowired
     UserDetailsService userDetailsService;
+
+    @Autowired
+    private JwtFilter jwtRequestFilter; 
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
@@ -22,17 +30,23 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests()
-            .antMatchers("/admin").hasRole("ADMIN")
-            .antMatchers("/users").hasAnyRole("ADMIN","USER")
-            .antMatchers("/register").permitAll()
-            .antMatchers("/").permitAll()
-            .and().csrf().disable()
-            .formLogin();
+        http.csrf().disable().authorizeRequests()
+                .antMatchers("/admin").hasRole("ADMIN")
+                .antMatchers("/users").hasAnyRole("USER", "ADMIN")
+                .antMatchers("/register").permitAll().antMatchers("/authenticate")
+                .permitAll().anyRequest().authenticated().and().sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+    }
+
+    @Override
+    @Bean
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
     }
 
     @Bean
-    public BCryptPasswordEncoder getPasswordEncoder(){
+    public BCryptPasswordEncoder getPasswordEncoder() {
         return new BCryptPasswordEncoder();
     }
 }

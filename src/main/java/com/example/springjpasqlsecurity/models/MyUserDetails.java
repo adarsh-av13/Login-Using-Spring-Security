@@ -51,7 +51,7 @@ public class MyUserDetails implements UserDetails {
     public boolean isEnabled() {
         return active;
     }
-
+    
     public MyUserDetails(User user) {
         this.username = user.getUsername();
         this.password = user.getPassword();
